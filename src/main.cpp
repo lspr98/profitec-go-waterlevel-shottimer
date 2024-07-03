@@ -203,11 +203,11 @@ void setup() {
     Display::init();
     Display::clear(BLACK);
 
-    // Initialize level sensor
-    LevelSensor::init();
-
     // Initialize IMU
     QMI8658_init();
+
+    // Initialize level sensor
+    LevelSensor::init();
 
     // Update ring limits to make space for status symbol at the bottom
     ring.setLimits(0.2*PI, 1.8*PI);

@@ -12,9 +12,9 @@
 // DF-A02YYUW sensor has a blind distance of 3cm = 30mm
 #define LEVEL_MIN_DIST_MM 30
 // Number of times to try reading a value from the sensor
-#define LEVEL_N_RETRY 50
+#define LEVEL_N_RETRY 10
 // Delay between two consecutive read attempts
-#define LEVEL_READ_DELAY_MS 20
+#define LEVEL_READ_DELAY_MS 10
 // Percentage value below which the ring changes color from OK to BAD
 #define LEVEL_BAD_PERC 25
 

@@ -12,10 +12,9 @@ namespace LevelSensor {
     }
 
     void init() {
-        // Route HW UART1 to given RX,TX pins and initialize it.
+        // Route HW UART1 to given RX,TX pins.
         gpio_set_function(PIN_LEVELSENSOR_TX, GPIO_FUNC_UART);
         gpio_set_function(PIN_LEVELSENSOR_RX, GPIO_FUNC_UART);
-        uart_init(uart1, 9600);
     }
 
     float getFillPercentage() {
@@ -33,6 +32,10 @@ namespace LevelSensor {
     }
 
     float getDistance() {
+        // Initialize uart
+        uart_init(uart1, 9600);
+        sleep_ms(100);
+
         // Clear old data from serial buffer
         flush();
 
@@ -64,11 +67,15 @@ namespace LevelSensor {
                     } else if(distance < LEVEL_MIN_DIST_MM){
                         distance = LEVEL_MIN_DIST_MM;
                     }
+                    // Close uart
+                    uart_deinit(uart1);
                     return distance;
                 }
             }
         }
 
+        // Close uart
+        uart_deinit(uart1);
         // failed to read a valid value.
         sout.err() <= "Failed to read from level sensor";
         return -1;
