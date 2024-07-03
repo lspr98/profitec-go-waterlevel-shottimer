@@ -7,7 +7,7 @@
 </p>
 
 
-A modern display mod for espresso machines. Includes a shot-timer and waterlevel indicator. Uses an accelerometer to detect vibrations for waking-up the display and timing shots. Measures and displays the waterlevel based on a contactless ultrasonic sensor. The mod was originally developed and tested for the Profitec GO, however, other machines with vibrationpump might work as well.
+A modern display mod for espresso machines with vibrationpumps. Includes a shot-timer and waterlevel-indicator. Uses an accelerometer to detect vibrations for waking-up the display and timing shots. Measures and displays the waterlevel based on a contactless ultrasonic sensor. Attaches to the machine via a magnet for easy repositioning. The mod was originally developed and tested for the Profitec GO, however, other machines with vibrationpumps might work as well.
 
 ## Features
 |Tap wake|Portafilter wake|Timer|
@@ -32,6 +32,21 @@ Recreating this project involves handling dangerous things like soldering irons,
 ## Building Instructions
 The building manual can be found [here](doc/manual/manual.pdf)
 
+## Usage notes and configuration
+I unfortunately don't have a second machine to test how well the settings transfer to different machines, so here are some hints on how to dial in things like detection sensitivity and timings. All relevent parameters (**highlighted in bold**) can be adjusted in [include/config.h](include/config.h). You need to reflash the firmware after making any changes. Refer to the manual on how to flash the firmware. **Never connect to the display via USB when the display cable is plugged in to avoid damage to your computer.** The 5V lines of the USB port and the display cable are connected!
+
+### Adjusting vibration sensing sensitivity
+The parameter for controlling vibration detection sensitivity is **WAKE_THRESH**. A lower value increases sensitivity, a higher value decreases sensitivity. The value has to be larger than 0. For different machines and mounting positions of the display, a different value for **WAKE_THRESH** may be required for reliable operation. The sensitivity affects both, the wake and timer function. A good value for **WAKE_THRESH** should wake the display when gently tapping on it and should keep the timer going reliably. My method of deciding on the threshold: you should be able to wake the display by slamming your fist on the surface on which the machine is standing on but it should not wake when placing a glass of water on that surface.
+
+### Adjusting waterlevel and warning threshold
+A fill level of 0 percent is shown if the sensor reports a distance of **LEVEL_MAX_DIST_MM** millimeters or more. A fill level of 100 percent is shown if the sensor reports a distance of **LEVEL_MIN_DIST_MM** millimeters or less. You can configure these two values to account for different watertank depths. The percentage below which the color of the ring will change to orange is configured with **LEVEL_BAD_PERC**.
+
+### Shottimer
+The shottimer is displayed with a delay of two seconds, which is on purpose. When a vibration is detected, the system will timeout for two seconds and check for a vibration after that timeout. If there is still a vibration, the timer starts (taking into account the time passed during the timeout). This is done to prevent the timer activating every time someone interacts with the machine. The delay can be configured via **TIMER_TRIGGER_DELAY_MS**. Setting this to zero will start the timer instantly when the display is awake and some vibration is detected. There is also the option to adjust *how many milliseconds one timer second has* via **TIMER_INCREMENT_MS**. I noticed that the timer on my machine seems to count a bit faster than a full second and verified that with the stopwatch of my smartphone. So you have that option to sync it with your machine timer.
+
+### Deactivating waterlevel function or timer function
+If you do not need the waterlevel but want the timer function, the system can be used without plugging in any levelsensor. The default wakescreen will be an orange ring with a questionmark, indicating a missing sensor. If you don't want the shottimer function, you can deactivate it by setting **ENABLE_TIMER** to false.
+
 ## Bill of materials (BoM)
 
 The following items are necessary to build the waterlevel indicator. Items marked with a (*) at the beginning do not need to be the exact listed item but may be replaced with something else. Sourcing links are included for people based in germany (those are the shops where I got the items from).
@@ -54,3 +69,6 @@ The following items are necessary to build the waterlevel indicator. Items marke
 Apart from the items listed above, you will need common consumables like **shrink tubing, solder and 3D-printer filament**.
 
 It is also possible to connect the display, sensor and power supply by directly soldering the wires together if you do not want to buy and crimp any connectors. In this case, you won't be able to detach the display or sensor without cutting the wires.
+
+### Support me
+If you want to give something back, you can download the **.stl** models for 3D-printing from my [Printables project](https://www.printables.com/de/model/931582-profitec-go-waterlevel-indicator-with-shot-timer) to help me fill my Prusameters. Thank you :)
