@@ -30,6 +30,11 @@ void RingIndicator::setLimits(float radMin, float radMax) {
     _radValue = _radMin;
 };
 
+void RingIndicator::setOffset(float radOffset) {
+    hide();
+    _radOffset = radOffset;
+}
+
 void RingIndicator::drawRing(uint16_t color, uint8_t width) {
     Graphics::drawRoundedArc(_xCenter, _yCenter, _radius, 
         _radMin+_radOffset, _radOffset+_radValue, width, color);

@@ -11,6 +11,7 @@
 #include <display.h>
 #include <levelsensor.h>
 #include <statusindicator.h>
+#include <greetingdisplay.h>
 #include <config.h>
 
 // UI elements
@@ -18,6 +19,7 @@ Counter counter;
 Interpolator interpolator;
 RingIndicator ring;
 StatusIndicator status;
+GreetingDisplay greeting;
 
 // Initial ring indicator color
 uint16_t currRingColor = RING_COLOR_OK;
@@ -76,14 +78,35 @@ bool checkVibration() {
 /**
  * Routine that shows and increases a timer each second if a continuous
  * vibration is detected. Finishes once the vibration stops for a second.
+ * Also shows timer progress on the ring indicator.
  */
 void timerRoutine(long tStart) {
   // Time passed since timer was started
   long tPassed = millis() - tStart;
   // Approximate time needed to check for vibration
   long tVibeCheck = IMU_N_SAMPLES*IMU_READ_DELAY_MS;
+  
+  // Hide greeting if shown
+  greeting.hide();
+  
+  // Setup ring for timer mode - leave gap at bottom for "s" indicator
+  ring.setLimits(0.2*PI, 1.8*PI);
+  // No offset needed - keeps gap at bottom naturally
+  ring.setOffset(0);
+  
+  // Calculate initial timer progress percentage
+  float timerSeconds = ((float)tPassed) / TIMER_INCREMENT_MS;
+  float timerProgress = (timerSeconds / TARGET_TIME_SEC) * 100.0;
+  if(timerProgress > 100.0) timerProgress = 100.0;
+  
+  // Choose color based on progress
+  uint16_t timerColor = (timerProgress >= 100.0) ? RING_COLOR_TIMER_COMPLETE : RING_COLOR_TIMER;
+  
+  // Show timer UI
   status.showStatus(StatusIndicatorState::TIMER, STATUS_COLOR);
-  counter.update(((float)tPassed)/TIMER_INCREMENT_MS, COUNTER_COLOR);
+  counter.update(timerSeconds, COUNTER_COLOR);
+  ring.updatePrec(timerProgress, timerColor);
+  
   // Outer loop keeps the timer running, performing second-wise updates
   while(true) {
     bool isVibrating = false;
@@ -108,54 +131,84 @@ void timerRoutine(long tStart) {
 
     // Update timer
     tPassed = millis() - tStart;
-    counter.update(((float)tPassed)/TIMER_INCREMENT_MS, COUNTER_COLOR);
+    timerSeconds = ((float)tPassed) / TIMER_INCREMENT_MS;
+    timerProgress = (timerSeconds / TARGET_TIME_SEC) * 100.0;
+    if(timerProgress > 100.0) timerProgress = 100.0;
+    
+    // Choose color based on progress - changes to green when target reached
+    timerColor = (timerProgress >= 100.0) ? RING_COLOR_TIMER_COMPLETE : RING_COLOR_TIMER;
+    
+    counter.update(timerSeconds, COUNTER_COLOR);
+    ring.updatePrec(timerProgress, timerColor);
   }
 }
 
 /**
  * Routine that tries to read a valid filllevel. If a valid value
  * is read, the filllevel is displayed after an animation.
- * If no valid value is read, an error screen is shown
+ * If water sensor is disabled, show greeting message instead.
  */
 void levelRoutine(float transitionTime) {
-  // Try to get fill level
-  targetPerc = LevelSensor::getFillPercentage();
-  
-  // Choose ring color based on percentage
-  if(targetPerc > LEVEL_BAD_PERC) {
-    currRingColor = RING_COLOR_OK;
-  } else {
-    currRingColor = RING_COLOR_BAD;
-  }
+  // Only try to read sensor if it's enabled
+  if(ENABLE_WATER_SENSOR) {
+    // Reset ring limits for water level display (make space for status at bottom)
+    ring.setLimits(0.2*PI, 1.8*PI);
+    // Reset offset to 0 for water level display (no rotation)
+    ring.setOffset(0);
+    
+    // Try to get fill level
+    targetPerc = LevelSensor::getFillPercentage();
+    
+    // Choose ring color based on percentage
+    if(targetPerc > LEVEL_BAD_PERC) {
+      currRingColor = RING_COLOR_OK;
+    } else {
+      currRingColor = RING_COLOR_BAD;
+    }
 
-  if(targetPerc > -1) {
-    status.showStatus(StatusIndicatorState::LEVEL, STATUS_COLOR);
-    counter.update(currPerc, COUNTER_COLOR);
-    ring.updatePrec(currPerc, currRingColor);
+    if(targetPerc > -1) {
+      // Valid sensor reading
+      status.showStatus(StatusIndicatorState::LEVEL, STATUS_COLOR);
+      counter.update(currPerc, COUNTER_COLOR);
+      ring.updatePrec(currPerc, currRingColor);
+      greeting.hide();
+    } else {
+      // Sensor error - show error state
+      status.showStatus(StatusIndicatorState::ERROR, STATUS_COLOR);
+      counter.hide();
+      ring.updatePrec(100, currRingColor);
+      greeting.hide();
+    }
+
+    // Gradually wakeup display
+    for(int i=0; i < 100; i++) {
+      Display::setBrightness(i);
+      sleep_ms(DIM_STEP_DELAY_MS);
+    }
+
+    if(targetPerc > -1) {
+      // Transition
+      interpolator.setFromTo(currPerc, targetPerc, transitionTime);
+      while(!interpolator.next(currPerc)) {
+          loopStart = millis();
+          ring.updatePrec(currPerc, currRingColor);
+          counter.update(currPerc, COUNTER_COLOR);
+          loopEnd = millis();
+          if(loopEnd-loopStart < FRAME_TIME_MS) {
+              sleep_ms(FRAME_TIME_MS - (loopEnd-loopStart));
+          }
+      }
+    }
   } else {
-    // Couldn't read filllevel. Show error state
-    status.showStatus(StatusIndicatorState::ERROR, STATUS_COLOR);
+    status.hide();
     counter.hide();
-    ring.updatePrec(100, currRingColor);
-  }
-
-  // Gradually wakeup display
-  for(int i=0; i < 100; i++) {
-    Display::setBrightness(i);
-    sleep_ms(DIM_STEP_DELAY_MS);
-  }
-
-  if(targetPerc > -1) {
-    // Transition
-    interpolator.setFromTo(currPerc, targetPerc, transitionTime);
-    while(!interpolator.next(currPerc)) {
-        loopStart = millis();
-        ring.updatePrec(currPerc, currRingColor);
-        counter.update(currPerc, COUNTER_COLOR);
-        loopEnd = millis();
-        if(loopEnd-loopStart < FRAME_TIME_MS) {
-            sleep_ms(FRAME_TIME_MS - (loopEnd-loopStart));
-        }
+    ring.hide();  // Hide ring completely when no sensor
+    greeting.showRandom(COUNTER_COLOR);
+    
+    // Gradually wakeup display
+    for(int i=0; i < 100; i++) {
+      Display::setBrightness(i);
+      sleep_ms(DIM_STEP_DELAY_MS);
     }
   }
 }
@@ -187,6 +240,7 @@ void systemSleep() {
   counter.hide();
   status.hide();
   ring.hide();
+  greeting.hide();
 
   // Wipe display
   Display::clear(BLACK);
@@ -206,11 +260,12 @@ void setup() {
     // Initialize IMU
     QMI8658_init();
 
-    // Initialize level sensor
-    LevelSensor::init();
-
-    // Update ring limits to make space for status symbol at the bottom
-    ring.setLimits(0.2*PI, 1.8*PI);
+    // Initialize level sensor only if enabled
+    if(ENABLE_WATER_SENSOR) {
+      LevelSensor::init();
+      // Update ring limits to make space for status symbol at the bottom
+      ring.setLimits(0.2*PI, 1.8*PI);
+    }
 
     systemWake();
 

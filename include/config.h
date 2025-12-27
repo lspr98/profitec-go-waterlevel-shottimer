@@ -4,6 +4,9 @@
 // *******************************
 //    Waterlevel sensor settings
 // *******************************
+// Set to true if you have a water level sensor installed, false if not
+// When false, the system will display coffee-related greeting messages instead
+#define ENABLE_WATER_SENSOR true
 // Profitec Go water reservoir is ~25cm deep
 // The intake for the pump sticks out about 2cm
 // The sensor sticks around ~2cm into the tank
@@ -42,6 +45,9 @@
 // while being awake until the timer is activated. This prevents the timer
 // from starting when e.g. the portafilter is removed/inserted
 #define TIMER_TRIGGER_DELAY_MS 2000
+// Target shot time in seconds. The progress ring will fill from 0 to 100%
+// as the timer approaches this value
+#define TARGET_TIME_SEC 27
 
 
 // *******************************
@@ -67,6 +73,10 @@
 #define RING_COLOR_OK CYAN
 // Color of ring-indicator if fill level percentage <= LEVEL_BAD_PERC
 #define RING_COLOR_BAD BRRED
+// Color of ring-indicator when showing timer progress (before reaching target)
+#define RING_COLOR_TIMER MAGENTA
+// Color of ring-indicator when timer reaches 100% (target time reached)
+#define RING_COLOR_TIMER_COMPLETE GREEN
 
 // *******************************
 //    StatusIndicator settings

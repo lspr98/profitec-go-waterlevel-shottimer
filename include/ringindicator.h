@@ -41,6 +41,13 @@ public:
     void setLimits(float radMin, float radMax);
 
     /**
+     * Set the rotation offset for the arc in radians.
+     * This shifts where the arc starts and ends by the given offset.
+     * Useful for rotating the arc to start from a different position (e.g., top instead of bottom).
+     */
+    void setOffset(float radOffset);
+
+    /**
      * Display a percentage value with the ring indicator.
      * The arc is drawn from _radMin to _radValue, 
      * where _radValue is:

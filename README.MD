@@ -20,6 +20,21 @@ A modern display mod for espresso machines with vibrationpumps. Includes a shot-
 - automatic shot-timer
 - non-destructive installation, minimal wiring outside the machine
 - adjustable colors, sensitivity, etc...
+- optional greeting messages when water sensor is not used
+
+## Hardware Options
+
+### Standard Build (with water level sensor)
+Follow the complete [building manual](doc/manual/manual.pdf) for the full installation including water level sensor, wiring, and internal power supply.
+
+### Simplified Build (timer-only, no soldering)
+If you only want the shot-timer functionality and want to avoid soldering, you can use the [3D-printable case from MakerWorld](https://makerworld.com/en/models/2165007-espresso-coffee-shot-timer-rp2040-no-soldering#profileId-2347518) which allows:
+- Powering the RP2040 via USB Type-C (no internal wiring needed)
+- No soldering required for basic timer functionality
+- Display shows coffee-related greeting messages instead of water level
+- Option to still connect the water level sensor if desired later
+
+To use timer-only mode, set `ENABLE_WATER_SENSOR` to `false` in [include/config.h](include/config.h). When disabled, the system will display random coffee-themed greetings instead of the water level indicator.
 
 ## Disclaimer and warning
 Recreating this project involves handling dangerous things like soldering irons, 3D-printers and mains voltage. For legal reasons, handling these things should only be done by an expert. I am not responsible for any damage to you, your machine or your surrounding. Read through the complete [manual](doc/manual/manual.pdf) to decide if you feel comfortable building the mod and if it is worth the effort to you.
@@ -44,8 +59,27 @@ A fill level of 0 percent is shown if the sensor reports a distance of **LEVEL_M
 ### Shottimer
 The shottimer is displayed with a delay of two seconds, which is on purpose. When a vibration is detected, the system will timeout for two seconds and check for a vibration after that timeout. If there is still a vibration, the timer starts (taking into account the time passed during the timeout). This is done to prevent the timer activating every time someone interacts with the machine. The delay can be configured via **TIMER_TRIGGER_DELAY_MS**. Setting this to zero will start the timer instantly when the display is awake and some vibration is detected. There is also the option to adjust *how many milliseconds one timer second has* via **TIMER_INCREMENT_MS**. I noticed that the timer on my machine seems to count a bit faster than a full second and verified that with the stopwatch of my smartphone. So you have that option to sync it with your machine timer.
 
-### Deactivating waterlevel function or timer function
-If you do not need the waterlevel but want the timer function, the system can be used without plugging in any levelsensor. The default wakescreen will be an orange ring with a questionmark, indicating a missing sensor. If you don't want the shottimer function, you can deactivate it by setting **ENABLE_TIMER** to false.
+### Configuring water level sensor and timer
+You can configure the system to work with or without a water level sensor:
+
+**Water sensor enabled** (`ENABLE_WATER_SENSOR = true`): 
+- Displays water level percentage with colored ring indicator
+- Requires water level sensor to be connected
+- Shows "?" if sensor is disconnected or malfunctioning
+
+**Water sensor disabled** (`ENABLE_WATER_SENSOR = false`):
+- Shows random coffee-themed greeting messages (e.g., "You are my specialty", "Espresso yourself")
+- No water level sensor needed
+- Ideal for simplified/USB-powered builds
+- Timer functionality still works normally
+
+The shot-timer function can be independently controlled with **ENABLE_TIMER**. Set it to false if you don't want the timer feature.
+
+### Timer Progress Bar
+The system includes a visual timer progress bar that fills as you approach your target shot time. Configure **TARGET_TIME_SEC** (default: 27 seconds) to set your preferred shot duration. The progress ring will:
+- Fill gradually as the timer counts up
+- Change from magenta to green when target time is reached
+- Provide visual feedback without looking at the numbers
 
 ## Bill of materials (BoM)
 
